@@ -156,7 +156,7 @@
     const BASE_METEOR_WIDTH = 96;
     const BASE_METEOR_HEIGHT = 100;
 
-    let MOVEMENT_STEP = 15; // Kecepatan langkah pesawat ditingkatkan
+    let MOVEMENT_STEP = 10; // Kecepatan langkah pesawat ditingkatkan
     let METEOR_SPEED = 3; // Kecepatan meteor
     const BACKGROUND_SPEED = 1; // Kecepatan scrolling background
     
@@ -230,20 +230,21 @@
         // 4. Pengecekan Tabrakan (Collision Detection)
         
         // Tentukan "Hitbox" lebih kecil dari ukuran gambar
-        const planePadding = planeElement.clientWidth * 0.12; // 20% padding horizontal
-        const meteorPadding = meteorElement.clientWidth * 0.05; // 15% padding horizontal
+        // Ditingkatkan untuk membatasi jangkauan tabrakan (membuatnya lebih akurat)
+        const planePadding = planeElement.clientWidth * 0.30; // 30% padding horizontal (sebelumnya 20%)
+        const meteorPadding = meteorElement.clientWidth * 0.25; // 25% padding horizontal (sebelumnya 15%)
 
         // Batas-batas objek Pesawat (lebih kecil)
         const planeLeft = planeX + planePadding;
         const planeRight = planeX + planeElement.clientWidth - planePadding;
-        const planeTop = planeY + planePadding * 0.05; // Padding vertikal lebih kecil
-        const planeBottom = planeY + planeElement.clientHeight - planePadding * 0.05;
+        const planeTop = planeY + planePadding * 0.5; // Padding vertikal (sekitar 15%)
+        const planeBottom = planeY + planeElement.clientHeight - planePadding * 0.5;
 
         // Batas-batas objek Meteor (lebih kecil)
         const meteorLeft = meteorX + meteorPadding;
         const meteorRight = meteorX + meteorElement.clientWidth - meteorPadding;
-        const meteorTop = meteorY + meteorPadding * 0.05;
-        const meteorBottom = meteorY + meteorElement.clientHeight - meteorPadding * 0.05;
+        const meteorTop = meteorY + meteorPadding * 0.5; // Padding vertikal (sekitar 12.5%)
+        const meteorBottom = meteorY + meteorElement.clientHeight - meteorPadding * 0.5;
 
 
         const collision = (
@@ -407,4 +408,3 @@
 </script>
 </body>
 </html>
-

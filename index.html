@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rialo Space (Layar Penuh)</title>
+    <title>Rialo Space </title>
     <!-- Memuat Tailwind CSS untuk styling modern -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -110,7 +110,7 @@
     <div class="w-full flex flex-col items-center justify-start">
         <div class="max-w-xl w-full"> 
             <h1 class="text-4xl font-extrabold text-indigo-400 mb-2 mt-4 drop-shadow-lg">Rialo Space</h1>
-            <h3 class="text-xl font-medium text-gray-300 mb-4">Skor: <span id="Score" class="font-bold text-yellow-400">0</span></h3>
+            <h3 class="text-xl font-medium text-gray-300 mb-4">Score: <span id="Score" class="font-bold text-yellow-400">0</span></h3>
         </div>
         
         <!-- Area Game Utama -->
@@ -123,17 +123,17 @@
                 <div id="gameOverMessage" class="modal hidden">
                     <div class="bg-gray-800 p-8 rounded-xl shadow-2xl text-white max-w-xs w-full border-2 border-red-500">
                         <p class="text-3xl font-bold mb-4 text-red-400">GAME OVER!</p>
-                        <p class="text-lg mb-6">Skor Akhir Anda:</p>
+                        <p class="text-lg mb-6">Your Score:</p>
                         <p id="finalScore" class="text-5xl font-extrabold text-yellow-300 mb-8">0</p>
                         <button onclick="startGame()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition duration-200 w-full">
-                            Mulai Lagi (Tekan Spasi)
+                            Ready? (Press SpaceBar)
                         </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <p class="text-sm text-gray-500 mt-4 max-w-xl">Gunakan tombol panah ($\leftarrow$, $\uparrow$, $\rightarrow$, $\downarrow$) untuk menggerakkan pesawat.</p>
+        <p class="text-sm text-gray-500 mt-4 max-w-xl">Use the arrow keys to move the Plane</p>
 
     </div>
 
@@ -408,5 +408,6 @@
 </script>
 </body>
 </html>
+
 
 

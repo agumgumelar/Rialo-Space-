@@ -230,20 +230,20 @@
         // 4. Pengecekan Tabrakan (Collision Detection)
         
         // Tentukan "Hitbox" lebih kecil dari ukuran gambar
-        const planePadding = planeElement.clientWidth * 0.20; // 20% padding horizontal
-        const meteorPadding = meteorElement.clientWidth * 0.15; // 15% padding horizontal
+        const planePadding = planeElement.clientWidth * 0.12; // 20% padding horizontal
+        const meteorPadding = meteorElement.clientWidth * 0.05; // 15% padding horizontal
 
         // Batas-batas objek Pesawat (lebih kecil)
         const planeLeft = planeX + planePadding;
         const planeRight = planeX + planeElement.clientWidth - planePadding;
-        const planeTop = planeY + planePadding * 0.5; // Padding vertikal lebih kecil
-        const planeBottom = planeY + planeElement.clientHeight - planePadding * 0.5;
+        const planeTop = planeY + planePadding * 0.05; // Padding vertikal lebih kecil
+        const planeBottom = planeY + planeElement.clientHeight - planePadding * 0.05;
 
         // Batas-batas objek Meteor (lebih kecil)
         const meteorLeft = meteorX + meteorPadding;
         const meteorRight = meteorX + meteorElement.clientWidth - meteorPadding;
-        const meteorTop = meteorY + meteorPadding * 0.5;
-        const meteorBottom = meteorY + meteorElement.clientHeight - meteorPadding * 0.5;
+        const meteorTop = meteorY + meteorPadding * 0.05;
+        const meteorBottom = meteorY + meteorElement.clientHeight - meteorPadding * 0.05;
 
 
         const collision = (
@@ -407,3 +407,4 @@
 </script>
 </body>
 </html>
+

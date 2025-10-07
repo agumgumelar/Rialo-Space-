@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rialo Space (Perbaikan)</title>
+    <!-- Memuat Tailwind CSS untuk styling modern -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Menggunakan font Inter yang bersih */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            text-align: center;
+            background-color: #0d1117; /* Warna gelap */
+            color: #ffffff;
+            padding: 20px;
+        }
+
+        /* Container utama game, ukurannya tetap 400x500 di tengah */
+        #main {
+            width: 400px;
+            height: 500px;
+            /* Pastikan Anda memiliki file background.jpg di lokasi yang benar, 
+               atau ganti dengan placeholder jika tidak ditemukan */
+            background: url('background.jpg') repeat-y;
+            background-size: cover;
+            margin: 20px auto;
+            position: relative; 
+            overflow: hidden;
+            border: 4px solid #4a5568;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        #area {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            z-index: 100;
+        }
+        
+        /* Animasi Pesawat (Plane) */
+        @keyframes planetJet {
+            0%, 100% { background-image: url('plane1.png'); }
+            50% { background-image: url('plane2.png'); }
+        }
+        
+        #plane {
+            width: 100px;
+            height: 130px;
+            background-image: url('plane1.png');
+            background-size: 100%;
+            background-repeat: no-repeat;
+            position: absolute;
+            animation: planetJet 0.3s infinite;
+            /* Posisi awal disetel di JS, tapi ini untuk memastikan elemen berada di 'area' */
+            top: 400px; 
+            left: 150px;
+            transform: translateZ(0); /* Membantu kinerja animasi */
+        }
+        
+        /* Animasi Meteor */
+        @keyframes meteorFire {
+            0%, 100% { background-image: url('meteor1.png'); }
+            50% { background-image: url('meteor2.png'); }
+        }
+
+        #meteor {
+            width: 96px;
+            height: 100px;
+            background-image: url('meteor1.png');
+            background-size: 100%;
+            background-repeat: no-repeat;
+            animation: meteorFire 0.3s infinite;
+            position: absolute;
+            /* Posisi awal di luar layar, diatur oleh JS */
+            top: -100px;
+            left: 200px;
+            transform: translateZ(0);
+        }
+
+        /* Styling Game Over Modal */
+        .modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+            z-index: 200;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="max-w-md mx-auto">
+        <h1 class="text-4xl font-extrabold text-indigo-400 mb-2 mt-4 drop-shadow-lg">Rialo Space</h1>
+        <h3 class="text-xl font-medium text-gray-300 mb-4">Skor: <span id="Score" class="font-bold text-yellow-400">0</span></h3>
+        
+        <!-- Area Game Utama -->
+        <div id="main">
+            <div id="area">
+                <div id="plane"></div>
+                <div id="meteor"></div>
+
+                <!-- Game Over Modal -->
+                <div id="gameOverMessage" class="modal hidden">
+                    <div class="bg-gray-800 p-8 rounded-xl shadow-2xl text-white max-w-xs w-full border-2 border-red-500">
+                        <p class="text-3xl font-bold mb-4 text-red-400">GAME OVER!</p>
+                        <p class="text-lg mb-6">Skor Akhir Anda:</p>
+                        <p id="finalScore" class="text-5xl font-extrabold text-yellow-300 mb-8">0</p>
+                        <button onclick="startGame()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition duration-200 w-full">
+                            Mulai Lagi (Tekan Spasi)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <p class="text-sm text-gray-500 mt-4">Gunakan tombol panah ($\leftarrow$, $\uparrow$, $\rightarrow$, $\downarrow$) untuk menggerakkan pesawat.</p>
+
+    </div>
+
+<script>
+    // Variabel status game
+    let isMoving = false; // Setel ke false secara default, game dimulai saat user berinteraksi
+    let gameIntervals = []; // Array untuk menyimpan semua timer (sekarang menggunakan requestAnimationFrame)
+    let planeElement;
+    let meteorElement;
+    let backgroundElement;
+    let scoreElement;
+    let gameOverMessageElement;
+    
+    // Konstanta Game
+    const GAME_AREA_WIDTH = 400; // Lebar #main
+    const GAME_AREA_HEIGHT = 500; // Tinggi #main
+    const PLANE_WIDTH = 100;
+    const PLANE_HEIGHT = 130;
+    const METEOR_WIDTH = 96;
+    const METEOR_HEIGHT = 100;
+    const MOVEMENT_STEP = 15; // Kecepatan langkah pesawat ditingkatkan
+    const METEOR_SPEED = 3; // Kecepatan meteor
+    const BACKGROUND_SPEED = 1; // Kecepatan scrolling background
+    
+    let planeX = 150; // Posisi awal pesawat (X)
+    let planeY = 400; // Posisi awal pesawat (Y)
+    let meteorX = 200;
+    let meteorY = -100;
+    let backgroundY = 0;
+    let score = 0;
+    
+    // Objek untuk menyimpan status tombol yang ditekan
+    const keysPressed = {};
+
+    // --- Fungsi utilitas untuk membersihkan nilai CSS menjadi integer ---
+    // Diperbaiki: tidak perlu lagi parsing string px karena kita menggunakan variabel JS untuk posisi
+    // Hanya perlu untuk background
+    function getBackgroundPositionY(element) {
+        const style = element.style.backgroundPositionY || '0px';
+        return parseInt(style.replace('px', ''), 10);
+    }
+    
+    // --- FUNGSI UTAMA GAME LOOP (Menggunakan requestAnimationFrame) ---
+    function gameLoop(timestamp) {
+        if (!isMoving) return;
+
+        // 1. Pergerakan Latar Belakang & Skor
+        backgroundY += BACKGROUND_SPEED;
+        if (backgroundY > GAME_AREA_HEIGHT) {
+            backgroundY = 0;
+        }
+        backgroundElement.style.backgroundPositionY = backgroundY + 'px';
+
+        // Update Score (Berjalan setiap frame, lebih akurat)
+        score++;
+        scoreElement.innerHTML = Math.floor(score / 60); // Dibagi 60 untuk skor yang lebih lambat dan terkontrol (60 FPS)
+
+        // 2. Pergerakan Pesawat (berdasarkan tombol yang ditekan)
+        
+        // Horizontal Movement
+        if (keysPressed[37]) { // Left
+            planeX = Math.max(0, planeX - MOVEMENT_STEP);
+        }
+        if (keysPressed[39]) { // Right
+            planeX = Math.min(GAME_AREA_WIDTH - PLANE_WIDTH, planeX + MOVEMENT_STEP);
+        }
+
+        // Vertical Movement
+        if (keysPressed[38]) { // Up
+            planeY = Math.max(0, planeY - MOVEMENT_STEP);
+        }
+        if (keysPressed[40]) { // Down
+            planeY = Math.min(GAME_AREA_HEIGHT - PLANE_HEIGHT, planeY + MOVEMENT_STEP);
+        }
+
+        planeElement.style.left = planeX + 'px'; // Menggunakan 'left'
+        planeElement.style.top = planeY + 'px';   // Menggunakan 'top'
+
+
+        // 3. Pergerakan Meteor
+        meteorY += METEOR_SPEED;
+        
+        // Reset Meteor jika sudah melewati area bawah
+        if (meteorY > GAME_AREA_HEIGHT) {
+            meteorX = Math.floor(Math.random() * (GAME_AREA_WIDTH - METEOR_WIDTH));
+            meteorY = -METEOR_HEIGHT;
+        }
+        
+        meteorElement.style.left = meteorX + 'px';
+        meteorElement.style.top = meteorY + 'px';
+
+
+        // 4. Pengecekan Tabrakan (Collision Detection)
+        const collision = (
+            planeX < meteorX + METEOR_WIDTH &&
+            planeX + PLANE_WIDTH > meteorX &&
+            planeY < meteorY + METEOR_HEIGHT &&
+            planeY + PLANE_HEIGHT > meteorY
+        );
+
+        if (collision) {
+            endGame();
+        } else {
+            // Panggil frame berikutnya
+            requestAnimationFrame(gameLoop);
+        }
+    }
+
+    // Menghentikan game
+    function endGame() {
+        if (!isMoving) return; // Mencegah endGame dipanggil berkali-kali
+
+        isMoving = false;
+        
+        // Tampilkan pesan Game Over
+        document.getElementById('finalScore').innerHTML = Math.floor(score / 60);
+        gameOverMessageElement.classList.remove('hidden');
+    }
+
+    // Fungsi untuk memulai atau mengulang game
+    function startGame() {
+        if (isMoving) return;
+        
+        // Reset variabel game
+        score = 0;
+        backgroundY = 0;
+        planeX = 150;
+        planeY = 400;
+        meteorX = Math.floor(Math.random() * (GAME_AREA_WIDTH - METEOR_WIDTH));
+        meteorY = -METEOR_HEIGHT; // Mulai meteor dari atas
+        
+        scoreElement.innerHTML = '0';
+        planeElement.style.left = planeX + 'px';
+        planeElement.style.top = planeY + 'px';
+        meteorElement.style.left = meteorX + 'px';
+        meteorElement.style.top = meteorY + 'px';
+        backgroundElement.style.backgroundPositionY = '0px';
+
+        // Sembunyikan pesan Game Over
+        gameOverMessageElement.classList.add('hidden');
+        
+        // Mulai Game Loop
+        isMoving = true;
+        requestAnimationFrame(gameLoop);
+    }
+
+
+    // Inisialisasi Event Listener untuk pergerakan pesawat
+    function setupMovementListener() {
+        // Ketika tombol ditekan
+        window.addEventListener('keydown', function(e) {
+            // Jangan memproses input jika game over
+            if (e.keyCode === 32) { // Tombol Spasi
+                e.preventDefault(); // Mencegah scroll
+                startGame();
+            }
+            if (isMoving) {
+                // Hanya tombol panah yang disimpan
+                if (e.keyCode >= 37 && e.keyCode <= 40) {
+                    keysPressed[e.keyCode] = true;
+                }
+            }
+        });
+
+        // Ketika tombol dilepas
+        window.addEventListener('keyup', function(e) {
+            if (e.keyCode >= 37 && e.keyCode <= 40) {
+                keysPressed[e.keyCode] = false;
+            }
+        });
+    }
+
+    // --- FUNGSI INISIALISASI (saat halaman dimuat) ---
+    window.onload = function() {
+        // Ambil referensi elemen
+        planeElement = document.getElementById('plane');
+        meteorElement = document.getElementById('meteor');
+        backgroundElement = document.getElementById('main');
+        scoreElement = document.getElementById('Score');
+        gameOverMessageElement = document.getElementById('gameOverMessage');
+
+        // Pastikan elemen ada
+        if (!planeElement || !meteorElement || !backgroundElement || !scoreElement || !gameOverMessageElement) {
+            console.error("Kesalahan: Salah satu elemen game tidak ditemukan. Pastikan ID 'plane', 'meteor', 'main', 'Score', dan 'gameOverMessage' sudah benar.");
+            // Tampilkan pesan kesalahan di UI
+            backgroundElement.innerHTML = "<p class='p-4 text-center text-red-500'>Gagal memuat game. Periksa konsol untuk detail error.</p>";
+            return;
+        }
+
+        // Setel posisi awal elemen (untuk menghindari margin-left/top, kita gunakan left/top)
+        planeElement.style.position = 'absolute'; // Sudah disetel di CSS
+        meteorElement.style.position = 'absolute'; // Sudah disetel di CSS
+        
+        // Setup listener
+        setupMovementListener();
+        
+        // Panggil startGame() saat halaman dimuat, tetapi biarkan isMoving=false. 
+        // User perlu menekan Spasi atau tombol di modal untuk memulai.
+        startGame(); 
+        
+        // Secara default, setelah setup, langsung tampilkan modal Game Over 
+        // untuk memberi tahu user cara memulai.
+        isMoving = false;
+        gameOverMessageElement.classList.remove('hidden');
+        document.getElementById('finalScore').innerHTML = '0';
+    };
+
+</script>
+</body>
+</html>

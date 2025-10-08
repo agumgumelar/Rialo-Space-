@@ -41,8 +41,6 @@
             border: 4px solid #4a5568;
             border-radius: 12px;
             box-shadow: 0 10px 15px rgba(0, 0, 0, 0.5);
-            /* Catatan: Rasio aspek akan dihitung dan disetel di JavaScript
-               untuk memastikan pesawat dan meteor tidak terdistorsi. */
         }
 
         #area {
@@ -50,6 +48,8 @@
             height: 100%;
             position: absolute;
             z-index: 100;
+            /* Penting: Setel touch-action none untuk mencegah scroll saat menyentuh area game */
+            touch-action: none; 
         }
         
         /* Animasi Pesawat (Plane) */
@@ -120,20 +120,22 @@
                 <div id="meteor"></div>
 
                 <!-- Game Over Modal -->
+                <!-- Menghapus onclick pada tombol dan membiarkan sentuhan di setupTouchListener yang mengurusnya -->
                 <div id="gameOverMessage" class="modal hidden">
                     <div class="bg-gray-800 p-8 rounded-xl shadow-2xl text-white max-w-xs w-full border-2 border-red-500">
                         <p class="text-3xl font-bold mb-4 text-red-400">GAME OVER!</p>
                         <p class="text-lg mb-6">Your Score:</p>
                         <p id="finalScore" class="text-5xl font-extrabold text-yellow-300 mb-8">0</p>
-                        <button onclick="startGame()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition duration-200 w-full">
-                            Ready? (Press SpaceBar)
+                        <!-- Tombol kini menunjukkan instruksi sentuh -->
+                        <button id="startButton" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition duration-200 w-full">
+                            Ready? (Tap or Press SpaceBar)
                         </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <p class="text-sm text-gray-500 mt-4 max-w-xl">Use the arrow keys to move the Plane</p>
+        <p class="text-sm text-gray-500 mt-4 max-w-xl">Use the arrow keys or drag on screen to move the Plane</p>
 
     </div>
 
@@ -145,7 +147,8 @@
     let backgroundElement;
     let scoreElement;
     let gameOverMessageElement;
-    
+    let startButtonElement; // Tambahkan referensi tombol
+
     // Konstanta Game akan dihitung secara dinamis
     let GAME_AREA_WIDTH = 400; // Lebar standar (basis perhitungan)
     let GAME_AREA_HEIGHT = 500; // Tinggi standar (basis perhitungan)
@@ -171,12 +174,6 @@
     // Objek untuk menyimpan status tombol yang ditekan
     const keysPressed = {};
 
-    // --- Fungsi utilitas untuk membersihkan nilai CSS menjadi integer ---
-    function getBackgroundPositionY(element) {
-        const style = element.style.backgroundPositionY || '0px';
-        return parseInt(style.replace('px', ''), 10);
-    }
-
     // --- FUNGSI UTAMA GAME LOOP (Menggunakan requestAnimationFrame) ---
     function gameLoop(timestamp) {
         if (!isMoving) return;
@@ -194,24 +191,24 @@
 
         // 2. Pergerakan Pesawat (berdasarkan tombol yang ditekan)
         
-        // Horizontal Movement
+        // --- LOGIC PERGERAKAN BERDASARKAN TOMBOL (Keyboard) ---
+        // Jika tombol panah ditekan, pergerakan berbasis langkah yang ada akan dipertahankan
         if (keysPressed[37]) { // Left
             planeX = Math.max(0, planeX - MOVEMENT_STEP);
         }
         if (keysPressed[39]) { // Right
             planeX = Math.min(GAME_AREA_WIDTH - planeElement.clientWidth, planeX + MOVEMENT_STEP);
         }
-
-        // Vertical Movement
         if (keysPressed[38]) { // Up
             planeY = Math.max(0, planeY - MOVEMENT_STEP);
         }
         if (keysPressed[40]) { // Down
             planeY = Math.min(GAME_AREA_HEIGHT - planeElement.clientHeight, planeY + MOVEMENT_STEP);
         }
+        // --- AKHIR LOGIC PERGERAKAN TOMBOL ---
 
         planeElement.style.left = planeX + 'px'; 
-        planeElement.style.top = planeY + 'px';   
+        planeElement.style.top = planeY + 'px'; 
 
 
         // 3. Pergerakan Meteor
@@ -229,21 +226,19 @@
 
         // 4. Pengecekan Tabrakan (Collision Detection)
         
-        // Tentukan "Hitbox" lebih kecil dari ukuran gambar
-        // Ditingkatkan untuk membatasi jangkauan tabrakan (membuatnya lebih akurat)
-        const planePadding = planeElement.clientWidth * 0.30; // 30% padding horizontal (sebelumnya 20%)
-        const meteorPadding = meteorElement.clientWidth * 0.25; // 25% padding horizontal (sebelumnya 15%)
+        const planePadding = planeElement.clientWidth * 0.30; 
+        const meteorPadding = meteorElement.clientWidth * 0.25; 
 
         // Batas-batas objek Pesawat (lebih kecil)
         const planeLeft = planeX + planePadding;
         const planeRight = planeX + planeElement.clientWidth - planePadding;
-        const planeTop = planeY + planePadding * 0.5; // Padding vertikal (sekitar 15%)
+        const planeTop = planeY + planePadding * 0.5;
         const planeBottom = planeY + planeElement.clientHeight - planePadding * 0.5;
 
         // Batas-batas objek Meteor (lebih kecil)
         const meteorLeft = meteorX + meteorPadding;
         const meteorRight = meteorX + meteorElement.clientWidth - meteorPadding;
-        const meteorTop = meteorY + meteorPadding * 0.5; // Padding vertikal (sekitar 12.5%)
+        const meteorTop = meteorY + meteorPadding * 0.5;
         const meteorBottom = meteorY + meteorElement.clientHeight - meteorPadding * 0.5;
 
 
@@ -304,7 +299,7 @@
     }
 
 
-    // Inisialisasi Event Listener untuk pergerakan pesawat
+    // Inisialisasi Event Listener untuk pergerakan pesawat Keyboard
     function setupMovementListener() {
         // Ketika tombol ditekan
         window.addEventListener('keydown', function(e) {
@@ -326,6 +321,50 @@
                 keysPressed[e.keyCode] = false;
             }
         });
+    }
+
+    // --- FUNGSI BARU UNTUK MENGATUR KONTROL SENTUH ---
+    function setupTouchListener() {
+        const areaElement = document.getElementById('area'); // Gunakan area untuk mendeteksi sentuhan
+        const mainRect = backgroundElement.getBoundingClientRect();
+
+        // 1. Tombol Mulai Game (di luar loop)
+        // Tambahkan listener langsung ke tombol mulai
+        startButtonElement.addEventListener('click', startGame);
+
+        // Tambahkan listener untuk seluruh area game agar bisa mulai dengan sekali tap
+        areaElement.addEventListener('touchstart', (e) => {
+            // Jika game tidak berjalan, anggap ini sebagai perintah mulai
+            if (!isMoving) {
+                e.preventDefault(); // Mencegah scroll pada sentuhan pertama
+                startGame();
+            }
+        }, { once: true }); // Listener ini akan dihapus setelah satu kali sentuhan
+
+        // 2. Kontrol Pesawat saat Game Berjalan
+        
+        // Update posisi pesawat berdasarkan sentuhan
+        const updatePlanePosition = (e) => {
+            if (!isMoving) return;
+            e.preventDefault(); // Mencegah scrolling/default browser behavior
+
+            const touch = e.touches[0];
+            const rect = backgroundElement.getBoundingClientRect();
+
+            // Hitung posisi sentuh relatif terhadap area game (#main)
+            let newX = touch.clientX - rect.left;
+            let newY = touch.clientY - rect.top;
+
+            // Atur posisi pesawat agar pusatnya mengikuti jari
+            newX = newX - planeElement.clientWidth / 2;
+            newY = newY - planeElement.clientHeight / 2;
+
+            // Batasi posisi di dalam batas-batas area game
+            planeX = Math.max(0, Math.min(newX, GAME_AREA_WIDTH - planeElement.clientWidth));
+            planeY = Math.max(0, Math.min(newY, GAME_AREA_HEIGHT - planeElement.clientHeight));
+        };
+
+        areaElement.addEventListener('touchmove', updatePlanePosition);
     }
 
     // --- FUNGSI UNTUK MENDAPATKAN DIMENSI AREA GAME SECARA DINAMIS DAN MENSKALAKAN OBJEK ---
@@ -375,8 +414,9 @@
         backgroundElement = document.getElementById('main');
         scoreElement = document.getElementById('Score');
         gameOverMessageElement = document.getElementById('gameOverMessage');
+        startButtonElement = document.getElementById('startButton'); // Ambil referensi tombol
 
-        if (!planeElement || !meteorElement || !backgroundElement || !scoreElement || !gameOverMessageElement) {
+        if (!planeElement || !meteorElement || !backgroundElement || !scoreElement || !gameOverMessageElement || !startButtonElement) {
             console.error("Kesalahan: Salah satu elemen game tidak ditemukan.");
             backgroundElement.innerHTML = "<p class='p-4 text-center text-red-500'>Gagal memuat game. Periksa konsol untuk detail error.</p>";
             return;
@@ -387,15 +427,16 @@
         
         // Setup listener
         setupMovementListener();
+        setupTouchListener(); // Panggil fungsi setup Touch
         
         // Tambahkan listener untuk menangani perubahan ukuran layar (agar responsif)
         window.addEventListener('resize', () => {
-             updateGameAreaDimensions();
-             // Memposisikan ulang pesawat dan meteor
-             planeElement.style.left = planeX + 'px'; 
-             planeElement.style.top = planeY + 'px';   
-             meteorElement.style.left = meteorX + 'px';
-             meteorElement.style.top = meteorY + 'px';
+              updateGameAreaDimensions();
+              // Memposisikan ulang pesawat dan meteor
+              planeElement.style.left = planeX + 'px'; 
+              planeElement.style.top = planeY + 'px';    
+              meteorElement.style.left = meteorX + 'px';
+              meteorElement.style.top = meteorY + 'px';
         });
 
         // Set posisi awal dan tampilkan Game Over Modal
@@ -408,6 +449,3 @@
 </script>
 </body>
 </html>
-
-
-
